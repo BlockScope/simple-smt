@@ -275,17 +275,19 @@ data Solver = Solver
 -- | Start a new solver process.
 newSolver :: String       {- ^ Executable -}            ->
              [String]     {- ^ Arguments -}             ->
+             (SExpr -> ShowS) {- ^ Function for showing s-expressions -} ->
              Maybe Logger {- ^ Optional logging here -} ->
              IO Solver
-newSolver n xs l = newSolverNotify n xs l Nothing
+newSolver n xs ppS l = newSolverNotify n xs ppS l Nothing
 
 newSolverNotify ::
   String        {- ^ Executable -}            ->
   [String]      {- ^ Arguments -}             ->
+  (SExpr -> ShowS) {- ^ Function for showing s-expressions -} ->
   Maybe Logger  {- ^ Optional logging here -} ->
   Maybe (ExitCode -> IO ()) {- ^ Do this when the solver exits -} ->
   IO Solver
-newSolverNotify exe opts mbLog mbOnExit =
+newSolverNotify exe opts ppS mbLog mbOnExit =
   do (hIn, hOut, hErr, h) <- runInteractiveProcess exe opts Nothing Nothing
 
      let info a = case mbLog of
@@ -308,7 +310,7 @@ newSolverNotify exe opts mbLog mbOnExit =
                         []     -> (xs, Nothing)
                         y : ys -> (ys, Just y)
 
-     let cmd c = do let txt = showsSExpr c ""
+     let cmd c = do let txt = ppS c ""
                     info ("[send->] " ++ txt)
                     hPutStrLn hIn txt
                     hFlush hIn
@@ -317,7 +319,7 @@ newSolverNotify exe opts mbLog mbOnExit =
            do cmd c
               mb <- getResponse
               case mb of
-                Just res -> do info ("[<-recv] " ++ showsSExpr res "")
+                Just res -> do info ("[<-recv] " ++ ppS res "")
                                return res
                 Nothing  -> fail "Missing response from solver"
 
