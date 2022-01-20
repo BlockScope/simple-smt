@@ -368,17 +368,9 @@ loadString s str = go (dropComments str)
 
 
 -- | A command with no interesting result but where we're not expecting
--- Atom "success" as response either, any Atom will do as response.
-atomCommand :: Solver -> SExpr -> IO ()
-atomCommand proc c =
-  do res <- command proc c
-     case res of
-       Atom _ -> return ()
-       _  -> fail $ unlines
-                      [ "Unexpected result from the SMT solver:"
-                      , "  Expected: success"
-                      , "  Result: " ++ showsSExpr res ""
-                      ]
+-- Atom "success" as response either, any SExpr will do as response.
+regardlessCommand :: Solver -> SExpr -> IO ()
+regardlessCommand proc c = command proc c >> return ()
 
 -- | A command with no interesting result.
 ackCommand :: Solver -> SExpr -> IO ()
@@ -546,7 +538,7 @@ defineFunsRec proc ds = ackCommand proc $ fun "define-funs-rec" [ decls, bodies 
 echo :: Solver -> String -> IO ()
 echo proc msg =
   do let quotedMsg = "\"" ++ msg ++ "\""
-     atomCommand proc (List [ Atom "echo", Atom quotedMsg ])
+     regardlessCommand proc (List [ Atom "echo", Atom quotedMsg ])
 
 -- | Assume a fact.
 assert :: Solver -> SExpr -> IO ()
