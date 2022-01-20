@@ -40,6 +40,7 @@ module SimpleSMT
   , defineFun
   , defineFunRec
   , defineFunsRec  
+  , echo
   , assert
   , check
   , Result(..)
@@ -366,6 +367,19 @@ loadString s str = go (dropComments str)
 
 
 
+-- | A command with no interesting result but where we're not expecting
+-- Atom "success" as response either, any Atom will do as response.
+atomCommand :: Solver -> SExpr -> IO ()
+atomCommand proc c =
+  do res <- command proc c
+     case res of
+       Atom _ -> return ()
+       _  -> fail $ unlines
+                      [ "Unexpected result from the SMT solver:"
+                      , "  Expected: success"
+                      , "  Result: " ++ showsSExpr res ""
+                      ]
+
 -- | A command with no interesting result.
 ackCommand :: Solver -> SExpr -> IO ()
 ackCommand proc c =
@@ -528,7 +542,12 @@ defineFunsRec proc ds = ackCommand proc $ fun "define-funs-rec" [ decls, bodies 
     decls  = List (map oneArg ds)
     bodies = List (map (\(_, _, _, body) -> body) ds)
 
-     
+-- | Echo a message to the solver, enclosing it in double quotes before sending.
+echo :: Solver -> String -> IO ()
+echo proc msg =
+  do let quotedMsg = "\"" ++ msg ++ "\""
+     atomCommand proc (List [ Atom "echo", Atom quotedMsg ])
+
 -- | Assume a fact.
 assert :: Solver -> SExpr -> IO ()
 assert proc e = ackCommand proc $ fun "assert" [e]
