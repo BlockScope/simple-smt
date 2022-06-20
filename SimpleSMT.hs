@@ -370,7 +370,7 @@ loadString s str = go (dropComments str)
 -- | A command with no interesting result but where we're not expecting
 -- Atom "success" as response either, any SExpr will do as response.
 regardlessCommand :: Solver -> SExpr -> IO ()
-regardlessCommand proc c = command proc c >> return ()
+regardlessCommand proc c = void (command proc c)
 
 -- | A command with no interesting result.
 ackCommand :: Solver -> SExpr -> IO ()
